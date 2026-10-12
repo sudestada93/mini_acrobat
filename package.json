@@ -5,11 +5,11 @@
   "description": "Editor de PDF completo en un único archivo HTML, sin servidor.",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node build.mjs && node test/smoke.mjs && node test/flows.mjs"
+    "test": "node build.mjs && node test/smoke.mjs && node test/flows.mjs && node test/textedit.mjs"
   },
   "dependencies": {
+    "@cantoo/fontkit": "2.0.12",
     "@cantoo/pdf-lib": "2.11.1",
     "pdfjs-dist": "3.11.174"
-  },
-  "devDependencies": {}
+  }
 }

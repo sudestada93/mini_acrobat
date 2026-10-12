@@ -231,8 +231,12 @@ async function prefsDialog() {
   const v = await formDialog('Preferencias', [
     { name: 'author', label: 'Tu nombre (para comentarios, sellos y firmas escritas)', value: S.author },
     { name: 'flatten', label: 'Aplanar comentarios al guardar (por defecto se guardan como anotaciones editables)', type: 'checkbox', value: S.flattenComments },
+    { name: 'localFonts', label: 'Usar las fuentes instaladas en el equipo al editar texto (Chrome y Edge piden permiso la primera vez)', type: 'checkbox', value: lsGet('ma.localFonts', true) },
+    { name: 'fonts', type: 'html', html: h('div', {}, h('button', { class: 'btn small', onclick: () => uploadFonts() }, 'Cargar fuentes (.ttf / .otf)…'),
+      h('div', { class: 'help' }, `Fuentes cargadas o instaladas en uso: ${[...S.extFonts.values()].map((e) => e.family + (e.bold ? ' negrita' : '') + (e.italic ? ' cursiva' : '')).join(', ') || 'ninguna'}`)) },
   ], { ok: 'Guardar' });
   if (!v) return;
+  lsSet('ma.localFonts', v.localFonts);
   S.author = v.author.trim() || 'Usuario'; lsSet('ma.author', S.author);
   S.flattenComments = v.flatten; lsSet('ma.flattenComments', v.flatten);
 }
@@ -425,6 +429,6 @@ function init() {
   updateHistoryButtons();
   if (window.innerWidth < 820) $('#props').classList.add('collapsed');
   // API mínima para pruebas automatizadas
-  window.miniAcrobat = { S, CMDS, openBytes, buildOutput, setTool, addObject, docOp, rotatePages, deletePages, movePages, duplicatePages, applyRedactions, findAll, undo, redo };
+  window.miniAcrobat = { S, CMDS, pageItems, allLines, layoutText, openBytes, buildOutput, setTool, addObject, docOp, rotatePages, deletePages, movePages, duplicatePages, applyRedactions, findAll, undo, redo };
 }
 init();

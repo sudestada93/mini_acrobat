@@ -115,11 +115,13 @@ await step('herramienta editar texto', async () => {
   await page.evaluate(() => document.querySelector('#viewer').scrollTo(0, 0));
   await page.waitForTimeout(300);
   const span = page.locator('.page').first().locator('.textLayer span').filter({ hasText: 'Capitulo' }).first();
-  await span.click();
-  await page.waitForTimeout(200);
+  const sb = await span.boundingBox();
+  await page.mouse.click(sb.x + sb.width / 2, sb.y + sb.height / 2);
+  await page.waitForSelector('.tx-editor');
+  await page.keyboard.press('Control+a');
   await page.keyboard.type('Capítulo editado');
   await page.keyboard.press('Escape');
-  const t = await page.evaluate(() => window.miniAcrobat.S.objects.flat().find((o) => o.cover)?.text);
+  const t = await page.evaluate(() => window.miniAcrobat.S.objects.flat().find((o) => o.edit)?.runs.map((r) => r.t).join(''));
   if (t !== 'Capítulo editado') throw new Error('texto: ' + t);
 });
 await step('resaltar selección', async () => {

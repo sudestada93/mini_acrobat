@@ -70,7 +70,7 @@ async function loadPdfJs(bytes, { keepView = true } = {}) {
   if (S.pdf) { try { await S.pdf.destroy(); } catch { /* ignorar */ } }
   S.bytes = bytes;
   const task = pdfjsLib.getDocument({
-    data: bytes.slice(), isEvalSupported: false, enableXfa: false,
+    data: bytes.slice(), isEvalSupported: false, enableXfa: false, fontExtraProperties: true,
     cMapUrl: PDFJS_CDN + 'cmaps/', cMapPacked: true, standardFontDataUrl: PDFJS_CDN + 'standard_fonts/',
   });
   task.onPassword = async (cb, reason) => {
@@ -80,6 +80,8 @@ async function loadPdfJs(bytes, { keepView = true } = {}) {
   S.pdf = await task.promise;
   S.version++;
   S.textCache = [];
+  S.lineModels = [];
+  resetPdfFonts();
   S.thumbCache.clear();
   S.ocConfig = await S.pdf.getOptionalContentConfig().catch(() => null);
   const n = S.pdf.numPages;
@@ -93,6 +95,7 @@ async function loadPdfJs(bytes, { keepView = true } = {}) {
   S.objects.length = n;
   S.current = clamp(S.current, 0, n - 1);
   buildPageDom();
+  await preloadTextFonts();
   $('#welcome').hidden = true;
   $('#pageCount').textContent = '/ ' + n;
   if (!keepView) S.zoomMode = 'fitw';
@@ -259,6 +262,7 @@ function computeScale(mode) {
 }
 function applyZoom(mode, { keepAnchor = true } = {}) {
   if (!S.pages.length) return;
+  if (editing) finishTextEdit();
   const v = viewer();
   let anchor = null;
   if (keepAnchor && S.pages[S.current]?.el) {

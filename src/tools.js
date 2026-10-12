@@ -2,7 +2,7 @@
 const TOOLS = {
   select: { label: 'Seleccionar', icon: 'select' },
   hand: { label: 'Mano', icon: 'hand' },
-  edittext: { label: 'Editar texto', icon: 'edittext' },
+  edittext: { label: 'Editar texto', icon: 'edittext', create: true, sticky: true },
   text: { label: 'Añadir texto', icon: 'textbox', create: true },
   note: { label: 'Nota', icon: 'note', create: true },
   highlight: { label: 'Resaltar texto', icon: 'highlight', sticky: true },
@@ -55,6 +55,14 @@ async function setTool(t) {
   renderAllOverlays();
   renderProps();
 }
+// texto nuevo con la fuente y estilo elegidos en el panel
+function newTextObject(x, y, text) {
+  const st = S.style;
+  const fd = st.fd ? clone(st.fd) : stdFd(st.font || 'helv', !!st.bold, !!st.italic);
+  const m = { sans: 0.905, serif: 0.891, mono: 0.833 }[fd.cat] || 0.905;
+  const asc = (BASE_RATIO[CAT_STD[fd.cat]] || m) * st.size;
+  return { type: 'text', x, y: y - asc * 0.75, asc, desc: st.size * 0.25, lh: st.size * 1.2, nowrap: true, align: st.align || 'left', bg: st.bg, runs: [{ t: text, fd, s: st.size, c: st.color }] };
+}
 function afterCreate() { if (!TOOLS[S.tool]?.sticky) setTool('select'); }
 
 function loadImageInfo(src) {
@@ -83,29 +91,36 @@ function attachPageEvents(el, pi) {
   const ov = el.querySelector('.ov');
   ov.addEventListener('pointerdown', (e) => onCreatePointerDown(e, pi));
   el.addEventListener('pointerdown', (e) => {
-    if (S.tool === 'select' && !e.target.closest('.obj, .handle, .note-pop')) deselect();
+    if (S.tool === 'select' && !e.target.closest('.obj, .handle, .note-pop, .tx-editor, .tx-toolbar')) deselect();
     S.current = pi; updatePageIndicator();
   });
   el.addEventListener('pointerup', (e) => {
     if (['highlight', 'underline', 'strike'].includes(S.tool)) setTimeout(() => markupFromSelection(S.tool), 0);
   });
-  el.addEventListener('click', (e) => {
-    if (S.tool !== 'edittext') return;
-    const span = e.target.closest('.textLayer span');
-    if (span && !span.classList.contains('markedContent')) { e.preventDefault(); editSpan(pi, span); }
+  let hoverRaf = 0;
+  ov.addEventListener('pointermove', (e) => {
+    if (S.tool !== 'edittext' || hoverRaf) return;
+    hoverRaf = requestAnimationFrame(() => { hoverRaf = 0; edittextHover(pi, e); });
   });
+  ov.addEventListener('pointerleave', () => { hoverBox?.remove(); hoverBox = null; });
 }
 
 function onCreatePointerDown(e, pi) {
   const t = S.tool;
   if (!TOOLS[t]?.create || e.button !== 0) return;
+  if (e.target.closest('.tx-editor, .tx-toolbar, .note-pop')) return;
   e.preventDefault();
   e.stopPropagation();
   const [x, y] = pagePoint(pi, e);
   const st = S.style;
+  if (t === 'edittext') {
+    if (editing) { finishTextEdit(); return; }
+    editTextAt(pi, x, y, { paragraph: e.shiftKey, clientX: e.clientX, clientY: e.clientY });
+    return;
+  }
   const clickTools = {
-    text: () => { const o = addObject(pi, { type: 'text', x, y: y - st.size * 0.7, w: 10, h: st.size * 1.2, nowrap: true, text: '', size: st.size, font: st.font, color: st.color, bold: st.bold, italic: st.italic, align: st.align, bg: st.bg }); setTool('select'); setTimeout(() => startTextEdit(o), 0); },
-    date: () => { addObject(pi, { type: 'text', x, y: y - st.size * 0.7, w: 10, h: st.size * 1.2, nowrap: true, text: today(), size: st.size, font: st.font, color: st.color }); setTimeout(() => S.sel && measureTextObj(S.sel), 0); afterCreate(); },
+    text: () => { const o = addObject(pi, newTextObject(x, y, '')); setTool('select'); setTimeout(() => startTextEdit(o), 0); },
+    date: () => { addObject(pi, newTextObject(x, y, today())); afterCreate(); },
     note: () => { const o = addObject(pi, { type: 'note', x: x - 10, y: y - 10, w: 20, h: 20, text: '', color: st.note, author: S.author, date: new Date().toISOString() }); afterCreate(); setTimeout(() => openNotePopup(o), 0); },
     stamp: () => {
       const sp = S.currentStamp;
@@ -268,51 +283,6 @@ function mergeLineRects(rects) {
     } else out.push({ ...r });
   }
   return out;
-}
-
-/* ---------- editar texto existente ---------- */
-function sampleColors(pi, box) {
-  const c = S.pages[pi].el.querySelector('canvas');
-  const out = { bg: '#ffffff', fg: '#000000' };
-  try {
-    const k = c.width / (S.pages[pi].w);
-    const ctx = c.getContext('2d', { willReadFrequently: true });
-    const x = Math.max(0, Math.floor(box.x * k)), y = Math.max(0, Math.floor(box.y * k));
-    const w = Math.max(1, Math.min(c.width - x, Math.ceil(box.w * k))), hh = Math.max(1, Math.min(c.height - y, Math.ceil(box.h * k)));
-    const data = ctx.getImageData(x, y, w, hh).data;
-    const counts = new Map();
-    let darkest = null, dl = 999;
-    for (let i = 0; i < data.length; i += 4) {
-      const key = (data[i] >> 3) + ',' + (data[i + 1] >> 3) + ',' + (data[i + 2] >> 3);
-      counts.set(key, (counts.get(key) || 0) + 1);
-    }
-    const bgKey = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0].split(',').map((v) => (+v << 3) + 4);
-    const lum = (r, g, b) => 0.3 * r + 0.59 * g + 0.11 * b;
-    const bgL = lum(...bgKey);
-    for (let i = 0; i < data.length; i += 4) {
-      const d = Math.abs(lum(data[i], data[i + 1], data[i + 2]) - bgL);
-      if (-d < dl) { dl = -d; darkest = [data[i], data[i + 1], data[i + 2]]; }
-    }
-    const hex = (a) => '#' + a.map((v) => clamp(v, 0, 255).toString(16).padStart(2, '0')).join('');
-    out.bg = hex(bgKey);
-    if (darkest && -dl > 60) out.fg = hex(darkest);
-  } catch (e) { /* lienzo no disponible */ }
-  return out;
-}
-function editSpan(pi, span) {
-  const pb = S.pages[pi].el.getBoundingClientRect();
-  const r = span.getBoundingClientRect();
-  const box = { x: (r.left - pb.left) / S.scale, y: (r.top - pb.top) / S.scale, w: r.width / S.scale, h: r.height / S.scale };
-  if (box.w < 1 || box.h < 1) return;
-  const fs = Math.max(4, Math.round(box.h * 10) / 10);
-  const ff = getComputedStyle(span).fontFamily.toLowerCase();
-  const font = /mono|courier/.test(ff) ? 'cour' : /sans/.test(ff) ? 'helv' : /serif|times/.test(ff) ? 'times' : 'helv';
-  const col = sampleColors(pi, box);
-  const o = addObject(pi, {
-    type: 'text', x: box.x, y: box.y - fs * 0.12, w: box.w, h: fs * 1.2, nowrap: true, text: span.textContent, size: fs, font, color: col.fg,
-    bold: false, italic: false, cover: { x: box.x - 1, y: box.y - 1, w: box.w + 2, h: box.h + 2 }, coverColor: col.bg,
-  });
-  setTimeout(() => startTextEdit(o), 0);
 }
 
 /* ---------- nota emergente ---------- */

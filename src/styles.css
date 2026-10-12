@@ -169,9 +169,8 @@ body.creating .page .ov { pointer-events: auto; cursor: crosshair; }
 body.tool-note .page .ov, body.tool-stamp .page .ov, body.tool-signature .page .ov, body.tool-initials .page .ov,
 body.tool-image .page .ov, body.tool-mark-check .page .ov, body.tool-mark-cross .page .ov, body.tool-mark-dot .page .ov,
 body.tool-date .page .ov, body.tool-text .page .ov { cursor: copy; }
-body.tool-edittext .textLayer span { cursor: text; outline: 1px dashed rgba(20,115,230,.55); }
-body.tool-edittext .textLayer span:hover { background: rgba(20,115,230,.15); }
-body:not(.tool-select):not(.tool-highlight):not(.tool-underline):not(.tool-strike):not(.tool-edittext) .textLayer { pointer-events: none; }
+body.tool-edittext .page .ov { cursor: text; }
+body:not(.tool-select):not(.tool-highlight):not(.tool-underline):not(.tool-strike) .textLayer { pointer-events: none; }
 body:not(.tool-select) .annotationLayer { pointer-events: none; }
 body.hl-fields .annotationLayer :is(.textWidgetAnnotation, .choiceWidgetAnnotation, .buttonWidgetAnnotation) { outline: 2px solid rgba(20,115,230,.5); background: rgba(20,115,230,.08); }
 .textLayer ::selection { background: rgba(20,115,230,.35); }
@@ -180,9 +179,23 @@ body.hl-fields .annotationLayer :is(.textWidgetAnnotation, .choiceWidgetAnnotati
 .obj { position: absolute; pointer-events: none; }
 body.tool-select .obj { pointer-events: auto; cursor: move; }
 .obj svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.obj.text .tx { white-space: pre-wrap; word-break: break-word; line-height: 1.2; outline: none; min-width: 4px; min-height: 1em; }
-.obj.text.nowrap .tx { white-space: pre; }
-.obj.text .tx[contenteditable] { cursor: text; outline: 1px dashed var(--sel); background: rgba(255,255,255,.35); }
+.obj .tsvg { position: absolute; inset: 0; pointer-events: none; }
+.obj .tsvg svg { overflow: visible; }
+.obj.text { min-width: 4px; }
+.obj.editing .tsvg { visibility: hidden; }
+.edit-hover { position: absolute; border: 1.5px dashed var(--sel); background: rgba(20,115,230,.08); border-radius: 2px; pointer-events: none; }
+.tx-editor { position: absolute; z-index: 15; outline: 1.5px dashed var(--sel); outline-offset: 2px; pointer-events: auto; cursor: text; padding: 0; margin: 0; caret-color: #1473e6; overflow-wrap: break-word; }
+.tx-editor .ln { white-space: inherit; }
+.tx-editor span { white-space: inherit; }
+.tx-toolbar {
+  position: absolute; z-index: 25; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; max-width: 640px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); padding: 5px 6px; pointer-events: auto; font-size: 12px; color: var(--text);
+}
+.tx-toolbar select, .tx-toolbar input { height: 26px; padding: 0 4px; font-size: 12px; }
+.tx-toolbar .fsel { max-width: 210px; }
+.tx-toolbar .fsize { width: 58px; }
+.tx-toolbar input[type="color"] { width: 30px; padding: 0 2px; }
+.tx-toolbar .fx-info { color: var(--muted); font-size: 11px; margin-left: 2px; }
 .obj .cover { position: absolute; }
 .obj.image img { width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; }
 .obj.stamp .st { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border-style: solid; border-radius: 6px; font-family: Arial, Helvetica, sans-serif; font-weight: 800; letter-spacing: .04em; line-height: 1.05; text-align: center; white-space: nowrap; overflow: hidden; }

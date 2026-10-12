@@ -12,7 +12,7 @@ funciona sin internet y los documentos nunca salen de tu equipo.
 |---|---|
 | **Ver** | Miniaturas, zoom (ajustar ancho / página / %), una o dos páginas, modo noche, presentación a pantalla completa, búsqueda (con mayúsculas/palabra completa), marcadores, capas, lectura en voz alta, imprimir |
 | **Comentar** | Notas adhesivas, resaltar / subrayar / tachar texto, resaltar área, cuadros de texto, dibujo libre, rectángulos, elipses, líneas, flechas, sellos (predefinidos, dinámicos con nombre y fecha, personalizados o desde imagen), herramienta de medición con escala, lista de comentarios. Se guardan como anotaciones editables (o aplanados, a elección) |
-| **Editar** | Editar texto existente (clic sobre el texto), añadir texto e imágenes, enlaces (a web o a página), corrector, marca de agua (texto o imagen, centrada o en mosaico), encabezado y pie, numeración de páginas, numeración Bates, recortar páginas, cambiar tamaño de página |
+| **Editar** | Editar texto existente con su tipografía original (ver abajo), añadir texto e imágenes, enlaces (a web o a página), corrector, marca de agua (texto o imagen, centrada o en mosaico), encabezado y pie, numeración de páginas, numeración Bates, recortar páginas, cambiar tamaño de página |
 | **Organizar** | Vista de organización con arrastrar y soltar, girar, eliminar, duplicar, insertar páginas en blanco o desde PDF/imágenes, reemplazar, extraer, dividir (cada N páginas, rangos, tamaño o marcadores), combinar archivos, invertir orden |
 | **Rellenar y firmar** | Completar formularios, firmas e iniciales (dibujadas, escritas o desde imagen, se recuerdan), fecha, tildes, cruces y puntos |
 | **Formularios** | Crear campos de texto, casillas, botones de opción, listas desplegables y cuadros de lista; detectar campos automáticamente; exportar / importar datos (JSON, CSV); borrar valores; aplanar; eliminar campos |
@@ -23,10 +23,25 @@ funciona sin internet y los documentos nunca salen de tu equipo.
 Además: deshacer/rehacer ilimitado por sesión, copiar/pegar objetos, pegar imágenes desde el portapapeles,
 arrastrar archivos a la ventana, tema claro/oscuro y atajos de teclado (botón **Ayuda**).
 
+## Edición de texto
+
+- **Clic** en una línea la edita; **Mayús+clic** edita el párrafo completo, que se reacomoda al escribir
+  (respeta justificado, centrado, sangría e interlineado).
+- Reconoce la **tipografía real** de cada fragmento (por ejemplo Calibri, Times New Roman, Liberation Serif),
+  sus **negritas, cursivas**, tamaño, color, espaciado entre letras y palabras, y la línea de base exacta:
+  las palabras que no tocás quedan en la misma posición.
+- Escribe con la **fuente original incrustada en el PDF** siempre que tenga las letras necesarias.
+  Si le faltan (los PDF suelen incluir solo las letras usadas), usa la **misma fuente instalada en tu equipo**
+  (Chrome/Edge piden permiso una vez), una fuente que cargues (.ttf/.otf, se recuerda) o, por último,
+  la estándar más parecida (Helvetica, Times o Courier en su variante negrita/cursiva).
+- Formato por palabra: seleccioná dentro del editor y usá la barra flotante o **Ctrl+B / Ctrl+I**.
+  Las negritas usan la variante negrita de la misma familia si el documento la tiene.
+- Al guardar, el texto reemplazado **se elimina del contenido del PDF** (no se tapa con un recuadro).
+  Si el texto está dentro de un objeto incrustado que no se puede modificar, se cubre con el color de fondo.
+
 ## Limitaciones conocidas
 
-- *Editar texto* reemplaza el fragmento: tapa el original con el color de fondo y escribe el nuevo texto encima
-  (como la mayoría de los editores web). Usa las fuentes estándar Helvetica, Times o Courier.
+- El texto girado o vertical no se puede editar como texto (sí anotar encima).
 - La redacción convierte en imagen las páginas afectadas para garantizar que el contenido no pueda recuperarse.
 - No hay firma digital con certificado (PKCS#7); las firmas son visuales.
 - No convierte desde Word/Excel/PowerPoint hacia PDF.
@@ -41,5 +56,6 @@ npm run build   # genera mini_acrobat.html
 npm test        # build + pruebas en Chromium con Playwright
 ```
 
-Librerías embebidas: [pdf.js](https://github.com/mozilla/pdf.js) 3.11.174 (Apache 2.0) para mostrar los PDF
-y [@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib) 2.11.1 (MIT) para modificarlos y cifrarlos.
+Librerías embebidas: [pdf.js](https://github.com/mozilla/pdf.js) 3.11.174 (Apache 2.0) para mostrar los PDF,
+[@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib) 2.11.1 (MIT) para modificarlos y cifrarlos y
+[@cantoo/fontkit](https://github.com/cantoo-scribe/fontkit) 2.0.12 (MIT) para incrustar fuentes.

@@ -95,6 +95,7 @@ async function docOp(label, fn, { gc = false } = {}) {
       });
       if (S.outline) remapOutline(S.outline, map);
     }
+    await preloadTextFonts();
     renderAllOverlays();
     refreshSidebar();
     return true;

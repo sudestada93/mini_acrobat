@@ -33,7 +33,7 @@ function objBox(o) {
   return { x: 0, y: 0, w: 0, h: 0 };
 }
 // Transforma todos los puntos de un objeto con fn([x,y]) -> [x,y]
-function transformObj(o, fn) {
+function transformObj(o, fn, moveOnly = false) {
   const box = (b) => {
     const p1 = fn([b.x, b.y]), p2 = fn([b.x + b.w, b.y + b.h]);
     return { x: Math.min(p1[0], p2[0]), y: Math.min(p1[1], p2[1]), w: Math.abs(p2[0] - p1[0]), h: Math.abs(p2[1] - p1[1]) };
@@ -43,13 +43,14 @@ function transformObj(o, fn) {
     const c = { x: o.x + o.w / 2, y: o.y + o.h / 2 };
     const [nx, ny] = fn([c.x, c.y]);
     o.x = nx - o.w / 2; o.y = ny - o.h / 2;
-    if (o.cover) Object.assign(o.cover, box(o.cover));
+    // las zonas del texto original reemplazado no se mueven al arrastrar, pero sí al cambiar la geometría de la página
+    if (!moveOnly && o.regions) o.regions = o.regions.map(box);
   } else if (BOX_TYPES.has(o.type)) Object.assign(o, box(o));
   else if (LINE_TYPES.has(o.type)) { [o.x1, o.y1] = fn([o.x1, o.y1]); [o.x2, o.y2] = fn([o.x2, o.y2]); }
   else if (o.type === 'ink') o.strokes = o.strokes.map((s) => s.map(fn));
   else if (o.type === 'markup') o.rects = o.rects.map(box);
 }
-function moveObj(o, dx, dy) { transformObj(o, ([x, y]) => [x + dx, y + dy]); }
+function moveObj(o, dx, dy) { transformObj(o, ([x, y]) => [x + dx, y + dy], true); }
 
 /* ---------- alta / baja ---------- */
 function addObject(pi, o, { select: doSelect = true, undoable = true } = {}) {
@@ -84,8 +85,7 @@ function renderOverlay(pi) {
   const pg = S.pages[pi];
   if (!pg?.el) return;
   const ov = pg.el.querySelector('.ov');
-  const editing = ov.querySelector('.tx[contenteditable]');
-  if (editing) return; // no interrumpir la edición de texto
+  if (ov.querySelector('.tx-editor')) return; // no interrumpir la edición de texto
   ov.innerHTML = '';
   for (const o of S.objects[pi] || []) {
     const el = objEl(o);
@@ -93,7 +93,7 @@ function renderOverlay(pi) {
     el.addEventListener('dblclick', (e) => {
       if (S.tool !== 'select') return;
       e.stopPropagation();
-      if (o.type === 'text') startTextEdit(o);
+      if (o.type === 'text') startTextEdit(o, { clientX: e.clientX, clientY: e.clientY });
       else if (o.type === 'note' || o.type === 'markup') openNotePopup(o);
     });
     ov.append(el);
@@ -169,19 +169,7 @@ function objEl(o) {
       if (o.blend) el.style.mixBlendMode = 'multiply';
       break;
     }
-    case 'text': {
-      Object.assign(el.style, { left: px(o.x), top: px(o.y), width: o.nowrap ? 'auto' : px(o.w), minHeight: px(o.size * 1.2) });
-      if (o.cover) {
-        el.append(h('div', { class: 'cover', style: { left: px(o.cover.x - o.x), top: px(o.cover.y - o.y), width: px(o.cover.w), height: px(o.cover.h), background: o.coverColor || '#fff' } }));
-      }
-      const tx = h('div', { class: 'tx', style: {
-        fontFamily: FONT_CSS[o.font] || FONT_CSS.helv, fontSize: o.size * s + 'px', color: o.color, fontWeight: o.bold ? 700 : 400,
-        fontStyle: o.italic ? 'italic' : 'normal', textAlign: o.align || 'left', background: o.bg || 'transparent', opacity: op, position: 'relative',
-      } });
-      tx.textContent = o.text;
-      el.append(tx);
-      break;
-    }
+    case 'text': textObjEl(o, el); break;
     case 'image': {
       place(o);
       el.append(h('img', { src: o.src, alt: '', draggable: 'false', style: { opacity: op } }));
@@ -245,13 +233,6 @@ function inkPath(pts) {
   const l = pts[pts.length - 1];
   return d + ` L${l[0]} ${l[1]}`;
 }
-function measureTextObj(o) {
-  // tras dibujar, guarda el tamaño real del texto (para exportar y para los tiradores)
-  const el = S.pages[o.page]?.el?.querySelector(`.obj[data-id="${o.id}"] .tx`);
-  if (!el) return;
-  if (o.nowrap) o.w = Math.max(4, el.scrollWidth / S.scale);
-  o.h = Math.max(o.size * 1.2, el.offsetHeight / S.scale);
-}
 
 /* ---------- selección y tiradores ---------- */
 function selectObj(o) {
@@ -263,7 +244,7 @@ function selectObj(o) {
 }
 function deselect() { if (!S.sel) return; const p = S.sel.page; S.sel = null; renderOverlay(p); renderProps(); }
 function drawHandles(ov, o) {
-  if (o.type === 'text') measureTextObj(o);
+  if (o.type === 'text') layoutText(o);
   const handles = [];
   if (LINE_TYPES.has(o.type)) handles.push(['p1', o.x1, o.y1], ['p2', o.x2, o.y2]);
   else if (BOX_TYPES.has(o.type) && o.type !== 'note' || o.type === 'ink') {
@@ -303,8 +284,7 @@ function dragLoop(e, onMove, onEnd) {
 
 function onObjPointerDown(e, o) {
   if (S.tool !== 'select' || e.button !== 0) return;
-  const tx = e.target.closest('.tx[contenteditable]');
-  if (tx) return; // editando texto
+  if (e.target.closest('.tx-editor')) return; // editando texto
   e.stopPropagation();
   if (S.sel?.id !== o.id) selectObj(o);
   const pi = o.page;
@@ -365,36 +345,6 @@ function startResize(e, o, k) {
   }, () => { changed(o); renderProps(); });
 }
 
-function startTextEdit(o) {
-  if (o.type !== 'text') return;
-  if (S.tool !== 'select') setTool('select');
-  selectObj(o);
-  const el = S.pages[o.page].el.querySelector(`.obj[data-id="${o.id}"] .tx`);
-  if (!el) return;
-  try { el.contentEditable = 'plaintext-only'; } catch { el.contentEditable = 'true'; }
-  if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true';
-  el.focus();
-  const range = document.createRange(); range.selectNodeContents(el);
-  const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
-  const before = o.text;
-  const finish = () => {
-    el.removeEventListener('blur', finish);
-    el.removeAttribute('contenteditable');
-    const txt = el.innerText.replace(/\n$/, '');
-    if (!txt.trim()) { removeObject(o, { undoable: before !== '' }); return; }
-    if (txt !== before) { if (before !== '') pushUndo(); o.text = txt; }
-    measureTextObj(o);
-    changed(o);
-    renderProps();
-  };
-  el.addEventListener('blur', finish);
-  el.addEventListener('keydown', (ev) => {
-    ev.stopPropagation();
-    if (ev.key === 'Escape') { ev.preventDefault(); el.blur(); }
-  });
-  el.addEventListener('input', () => { if (o.nowrap) { o.w = el.scrollWidth / S.scale; } });
-}
-
 /* ---------- panel de propiedades ---------- */
 function colorPicker(value, onChange, { allowNone = false } = {}) {
   const wrap = h('div', { class: 'colors' });
@@ -427,7 +377,7 @@ function toggleBtn(label, on, onChange, title) {
 const TOOL_HELP = {
   select: 'Hacé clic en un objeto para seleccionarlo, arrastralo para moverlo y usá los tiradores para cambiar su tamaño. Doble clic en un texto para editarlo. También podés seleccionar texto del PDF y completar formularios.',
   hand: 'Arrastrá para desplazarte por el documento.',
-  edittext: 'Hacé clic sobre cualquier texto del PDF para reemplazarlo. El texto original queda cubierto y se escribe el nuevo en su lugar.',
+  edittext: 'Hacé clic en una línea del PDF para editarla: se respetan su fuente, negritas, cursivas, color y posición exacta. Mayús+clic edita el párrafo completo y el texto se reacomoda al escribir. Dentro del editor: Ctrl+B negrita, Ctrl+I cursiva y la barra flotante para fuente, tamaño y color. Al guardar, el texto original se elimina del PDF y se reemplaza por el nuevo.',
   text: 'Hacé clic donde quieras escribir.', note: 'Hacé clic para pegar una nota adhesiva.',
   highlight: 'Seleccioná texto con el mouse para resaltarlo.', underline: 'Seleccioná texto para subrayarlo.', strike: 'Seleccioná texto para tacharlo.',
   hlarea: 'Arrastrá para resaltar un área.', ink: 'Dibujá a mano alzada. Mantené Mayús para trazos rectos.', rect: 'Arrastrá para dibujar. Mayús = cuadrado.',
@@ -508,7 +458,6 @@ function renderProps() {
     o[k] = v;
     if (['stroke', 'fill', 'width', 'opacity', 'font', 'size', 'color', 'bold', 'italic', 'align', 'bg', 'dash'].includes(k)) S.style[k] = v;
     changed(o);
-    if (o.type === 'text') setTimeout(() => { measureTextObj(o); renderOverlay(o.page); }, 0);
   };
   const get = (k) => o[k];
   let keys = STYLE_KEYS[o.type] || [];
@@ -518,14 +467,11 @@ function renderProps() {
   if (o.type === 'stamp') keys = ['color', 'opacity'];
   if (o.type === 'image') keys = ['opacity'];
   if (o.type === 'mark') keys = ['stroke', 'opacity'];
-  if (o.type === 'text') keys = [...keys, 'opacity'];
+  if (o.type === 'text') keys = [];
   const keyMap = { hl: 'color', note: 'color' };
   p.append(...styleControls(keys, (k) => get(keyMap[k] || k), (k, v) => upd(keyMap[k] || k, v)));
 
-  if (o.type === 'text') {
-    p.append(h('button', { class: 'btn small', style: { marginBottom: '8px' }, onclick: () => startTextEdit(o) }, icon('edit'), 'Editar texto'));
-    if (o.cover) p.append(propRow('Cubierta', colorPicker(o.coverColor || '#ffffff', (v) => { pushUndo(); o.coverColor = v; changed(o); })));
-  }
+  if (o.type === 'text') textPropsPanel(p, o);
   if (o.type === 'note' || o.type === 'markup') {
     const ta = h('textarea', { rows: 4, placeholder: 'Comentario…' });
     ta.value = (o.type === 'note' ? o.text : o.comment) || '';
@@ -635,12 +581,7 @@ function drawObjectsOnCanvas(ctx, pi, sc) {
       case 'ellipse': ctx.beginPath(); ctx.ellipse((b.x + b.w / 2) * sc, (b.y + b.h / 2) * sc, b.w / 2 * sc, b.h / 2 * sc, 0, 0, Math.PI * 2); if (o.fill) { ctx.fillStyle = o.fill; ctx.fill(); } if (o.stroke) ctx.stroke(); break;
       case 'line': case 'arrow': case 'measure': ctx.beginPath(); ctx.moveTo(o.x1 * sc, o.y1 * sc); ctx.lineTo(o.x2 * sc, o.y2 * sc); ctx.stroke(); break;
       case 'ink': for (const st of o.strokes) { ctx.beginPath(); st.forEach(([x, y], k) => (k ? ctx.lineTo(x * sc, y * sc) : ctx.moveTo(x * sc, y * sc))); ctx.stroke(); } break;
-      case 'text':
-        if (o.cover) { ctx.fillStyle = o.coverColor || '#fff'; ctx.fillRect(...R(o.cover)); }
-        if (o.bg) { ctx.fillStyle = o.bg; ctx.fillRect(...R(b)); }
-        ctx.fillStyle = o.color; ctx.font = `${o.italic ? 'italic ' : ''}${o.bold ? 'bold ' : ''}${o.size * sc}px ${FONT_CSS[o.font]}`; ctx.textBaseline = 'top';
-        o.text.split('\n').forEach((ln, k) => ctx.fillText(ln, b.x * sc, (b.y + k * o.size * 1.2 + o.size * 0.1) * sc));
-        break;
+      case 'text': drawTextOnCanvas(ctx, o, sc); break;
       case 'image': { const im = getImg(o.src); if (im.complete) ctx.drawImage(im, ...R(b)); break; }
       case 'stamp': ctx.strokeStyle = o.color; ctx.lineWidth = Math.max(1, b.h * 0.06 * sc); ctx.strokeRect(...R(b)); ctx.fillStyle = o.color; ctx.font = `bold ${b.h * 0.4 * sc}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(o.text, (b.x + b.w / 2) * sc, (b.y + b.h / 2) * sc); break;
       case 'markup': ctx.fillStyle = o.color; for (const r of o.rects) { if (o.kind === 'highlight') { ctx.globalAlpha = 0.4; ctx.fillRect(...R(r)); } else ctx.fillRect(r.x * sc, (r.y + r.h * (o.kind === 'underline' ? 0.86 : 0.5)) * sc, r.w * sc, Math.max(1, r.h * 0.08 * sc)); } break;

@@ -1,14 +1,8 @@
 /* Guardado (aplana las ediciones en el PDF), impresión, conversión, creación, comparación y lectura en voz alta. */
 const { rgb, BlendMode, LineCapStyle, pushGraphicsState, popGraphicsState, concatTransformationMatrix } = PDFLib;
-const BASELINE = { helv: 0.9465, times: 0.9375, cour: 0.8665 };
-const STD_FONT = {
-  helv: ['Helvetica', 'HelveticaBold', 'HelveticaOblique', 'HelveticaBoldOblique'],
-  times: ['TimesRoman', 'TimesRomanBold', 'TimesRomanItalic', 'TimesRomanBoldItalic'],
-  cour: ['Courier', 'CourierBold', 'CourierOblique', 'CourierBoldOblique'],
-};
 S.flattenComments = lsGet('ma.flattenComments', false);
 
-function commitTextEditing() { const ed = $('.tx[contenteditable]'); if (ed) ed.blur(); $$('.note-pop').forEach((p) => p.querySelector('.btn')?.click()); }
+function commitTextEditing() { if (editing) finishTextEdit(); $$('.note-pop').forEach((p) => p.querySelector('.btn')?.click()); }
 
 function wrapText(text, font, size, maxW) {
   const out = [];
@@ -71,14 +65,27 @@ async function drawObjectsIntoDoc(doc, { flattenComments = S.flattenComments } =
   let form = null;
   const getForm = () => (form ||= doc.getForm());
   const pages = doc.getPages();
+  await preloadTextFonts();
+  const fontCache = { std: new Map(), ext: new Map() };
   for (let pi = 0; pi < S.objects.length; pi++) {
     const list = (S.objects[pi] || []).filter((o) => o.type !== 'redact');
     if (!list.length || !pages[pi]) continue;
     const page = pages[pi];
     const pg = S.pages[pi];
     const H = pg.h;
+    const tcache = { ...fontCache, keys: new Map() };
+    // texto reemplazado: se elimina del contenido original; si no se puede, se tapa
+    const edits = list.filter((o) => o.type === 'text' && o.edit && o.regions?.length);
+    let uncovered = [];
+    if (edits.length) {
+      const regions = edits.flatMap((o) => o.regions.map((r) => ({ ...r, o })));
+      let counts = null;
+      try { counts = removeOriginalText(doc, page, pi, regions); } catch (e) { console.warn('eliminación de texto', e); }
+      uncovered = regions.filter((r, k) => !counts || !counts[k]);
+    }
     const Mx = M.then([1, 0, 0, -1, 0, H], M.inv(pg.vt));
     page.pushOperators(pushGraphicsState(), concatTransformationMatrix(...Mx));
+    for (const r of uncovered) page.drawRectangle({ x: r.x, y: H - r.y - r.h, width: r.w, height: r.h, color: hexToRgb(r.o.coverColor || '#ffffff') });
     const Y = (y) => H - y;
     const svgOpt = { x: 0, y: H };
     for (const o of list) {
@@ -128,21 +135,7 @@ async function drawObjectsIntoDoc(doc, { flattenComments = S.flattenComments } =
           }
           break;
         }
-        case 'text': {
-          if (o.cover) page.drawRectangle({ x: o.cover.x, y: Y(o.cover.y + o.cover.h), width: o.cover.w, height: o.cover.h, color: hexToRgb(o.coverColor || '#ffffff') });
-          const f = await font(o.font, o.bold, o.italic);
-          const txt = winAnsi(o.text);
-          const lines = o.nowrap ? txt.split('\n') : wrapText(txt, f, o.size, o.w);
-          const lh = o.size * 1.2;
-          if (o.bg) page.drawRectangle({ x: o.x, y: Y(o.y + Math.max(o.h, lines.length * lh)), width: o.w, height: Math.max(o.h, lines.length * lh), color: hexToRgb(o.bg), opacity: op });
-          lines.forEach((ln, k) => {
-            const lw = f.widthOfTextAtSize(ln, o.size);
-            const x = o.align === 'center' ? o.x + (o.w - lw) / 2 : o.align === 'right' ? o.x + o.w - lw : o.x;
-            const base = o.y + k * lh + (BASELINE[o.font] || BASELINE.helv) * o.size;
-            if (ln) page.drawText(ln, { x, y: Y(base), size: o.size, font: f, color: hexToRgb(o.color), opacity: op });
-          });
-          break;
-        }
+        case 'text': await drawTextObject(doc, page, pi, o, H, tcache); break;
         case 'image': {
           const img = await image(o.src);
           page.drawImage(img, { x: o.x, y: Y(o.y + o.h), width: o.w, height: o.h, opacity: op });
