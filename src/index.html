@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini Acrobat</title>
+<style>
+/*LAYER_CSS*/
+</style>
+<style>
+/*APP_CSS*/
+</style>
+</head>
+<body>
+<header id="topbar">
+  <div class="brand"><span class="logo">A</span><span>Mini Acrobat</span></div>
+  <div class="tb-group" id="tb-file"></div>
+  <div class="tb-sep"></div>
+  <div class="tb-group" id="tb-history"></div>
+  <div class="tb-sep"></div>
+  <div class="tb-group" id="tb-nav">
+    <button class="ib" data-cmd="prevPage" title="Página anterior (Re Pág)"></button>
+    <input id="pageInput" type="text" value="0" aria-label="Página actual">
+    <span id="pageCount">/ 0</span>
+    <button class="ib" data-cmd="nextPage" title="Página siguiente (Av Pág)"></button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group" id="tb-zoom">
+    <button class="ib" data-cmd="zoomOut" title="Alejar (Ctrl -)"></button>
+    <select id="zoomSelect" aria-label="Zoom">
+      <option value="fitw">Ajustar ancho</option>
+      <option value="fitp">Página completa</option>
+      <option value="0.5">50%</option><option value="0.75">75%</option>
+      <option value="1">100%</option><option value="1.25">125%</option>
+      <option value="1.5">150%</option><option value="2">200%</option>
+      <option value="3">300%</option><option value="4">400%</option>
+      <option value="custom" hidden>—</option>
+    </select>
+    <button class="ib" data-cmd="zoomIn" title="Acercar (Ctrl +)"></button>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="tb-group" id="tb-search">
+    <input id="searchInput" type="search" placeholder="Buscar en el documento (Ctrl F)" aria-label="Buscar">
+    <span id="searchCount"></span>
+    <button class="ib" data-cmd="searchPrev" title="Anterior (Mayús Intro)"></button>
+    <button class="ib" data-cmd="searchNext" title="Siguiente (Intro)"></button>
+    <button class="ib" data-cmd="searchOptions" title="Opciones de búsqueda"></button>
+  </div>
+  <div class="tb-group" id="tb-right"></div>
+</header>
+
+<nav id="tabs" role="tablist"></nav>
+<div id="ribbon"></div>
+
+<main id="main">
+  <aside id="sidebar">
+    <div id="sideTabs"></div>
+    <div id="sideBody"></div>
+  </aside>
+  <div id="sideResizer"></div>
+  <section id="viewer" tabindex="0">
+    <div id="pages"></div>
+    <div id="welcome">
+      <div class="welcome-card">
+        <div class="logo big">A</div>
+        <h1>Mini Acrobat</h1>
+        <p>Editor de PDF completo que funciona en tu navegador. Tus archivos no salen de tu equipo.</p>
+        <div class="welcome-actions">
+          <button class="btn primary" data-cmd="open">Abrir PDF…</button>
+          <button class="btn" data-cmd="newBlank">Documento en blanco</button>
+          <button class="btn" data-cmd="fromImages">Crear desde imágenes</button>
+          <button class="btn" data-cmd="merge">Combinar archivos</button>
+        </div>
+        <p class="hint">o arrastrá un archivo PDF o imágenes a esta ventana</p>
+      </div>
+    </div>
+    <div id="organizer" hidden></div>
+  </section>
+  <aside id="props"></aside>
+</main>
+
+<footer id="status">
+  <span id="statusText">Listo</span>
+  <span class="tb-spacer"></span>
+  <span id="statusTool"></span>
+  <span id="statusPage"></span>
+  <span id="statusZoom"></span>
+</footer>
+
+<input type="file" id="fileInput" accept="application/pdf,.pdf" hidden>
+<div id="dropMask" hidden><div>Soltá los archivos para abrirlos</div></div>
+<div id="modalRoot"></div>
+<div id="toasts"></div>
+<div id="busy" hidden><div class="spinner"></div><div id="busyText">Procesando…</div></div>
+<div id="printArea"></div>
+
+<!--LIBS-->
+<!--APP-->
+</body>
+</html>
