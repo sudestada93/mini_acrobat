@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Volumen BT+</string>
+
+    <string name="section_device">Dispositivo Bluetooth</string>
+    <string name="no_device">Ningún audífono o bocina Bluetooth conectado</string>
+    <string name="master_switch">Activar mejora de volumen Bluetooth</string>
+
+    <string name="section_profile">Perfil del dispositivo</string>
+    <string name="profile_hint">Cada audífono o bocina guarda su propio ajuste. Los dispositivos nuevos copian el perfil «Predeterminado».</string>
+    <string name="profile_enabled">Aplicar mejora a este dispositivo</string>
+    <string name="delete_profile">Borrar</string>
+
+    <string name="section_volume">Volumen</string>
+    <string name="boost_hint">Amplificación extra sobre el volumen máximo del teléfono. Empieza con 6 dB y sube poco a poco.</string>
+    <string name="limiter">Limitador anti-distorsión (recomendado)</string>
+    <string name="auto_volume">Al conectar, subir el volumen multimedia automáticamente</string>
+
+    <string name="section_eq">Ecualizador</string>
+    <string name="eq_hint">Subir 2–4 kHz hace que voces e instrumentos se oigan más fuertes sin forzar las bocinas.</string>
+
+    <string name="section_mode">Modo de procesamiento</string>
+    <string name="mode_global">Global: todo el audio del teléfono (recomendado)</string>
+    <string name="mode_session">Por aplicación: Spotify, YouTube Music, VLC y apps compatibles</string>
+    <string name="mode_hint">Si en modo Global no notas cambios al mover la amplificación, cambia a «Por aplicación» y vuelve a abrir tu reproductor.</string>
+
+    <string name="section_guide">Soluciones para Xiaomi / POCO (HyperOS y MIUI)</string>
+    <string name="guide_intro">El volumen bajo por Bluetooth en Xiaomi casi siempre viene de ajustes del sistema que una app no puede cambiar sola. Revisa estos pasos en orden:</string>
+
+    <string name="guide_1_title">1. Desactivar «volumen absoluto» (la solución más efectiva)</string>
+    <string name="guide_1">Con el volumen absoluto activo, el teléfono y el audífono comparten un solo volumen y muchos audífonos se quedan a la mitad. Ve a Ajustes → Ajustes adicionales → Opciones de desarrollador y activa «Desactivar volumen absoluto». Después desconecta y vuelve a conectar el audífono, y sube al máximo el volumen del teléfono Y el del audífono (con sus botones o gestos).\n\nSi no ves «Opciones de desarrollador»: Ajustes → Sobre el teléfono → toca 7 veces «Versión de HyperOS» (o «Versión de MIUI»).</string>
+    <string name="guide_1_button">Abrir opciones de desarrollador</string>
+
+    <string name="guide_2_title">2. Códec y descarga de hardware</string>
+    <string name="guide_2">En las mismas Opciones de desarrollador, con el audífono conectado:\n• «Códec de audio Bluetooth»: prueba AAC o SBC; algunos modelos suenan más fuerte con uno que con otro.\n• Si existe «Desactivar descarga de hardware A2DP» o «Bluetooth A2DP hardware offload», actívalo y reinicia el teléfono (ayuda en algunos POCO con MediaTek, como el M6 Pro).</string>
+
+    <string name="guide_3_title">3. Efectos de sonido de Xiaomi</string>
+    <string name="guide_3">Ajustes → Sonido y vibración → «Auriculares y efectos de audio» (o «Efectos de sonido»): prueba desactivar Dolby Atmos / Mejora de audio Mi, o elegir tu modelo de audífono. Algunos de estos efectos bajan el volumen o anulan esta app. Revisa también en Accesibilidad que el «Balance de audio» esté centrado y el «Audio mono» desactivado.</string>
+    <string name="guide_3_button">Abrir ajustes de sonido</string>
+
+    <string name="guide_4_title">4. Aviso de «volumen alto»</string>
+    <string name="guide_4">Cuando sale el aviso de que el volumen alto puede dañar tu oído, el sistema no deja pasar de cierto nivel hasta que tocas «Aceptar». Acéptalo y vuelve a subir el volumen.</string>
+
+    <string name="guide_5_title">5. Volver a emparejar el dispositivo</string>
+    <string name="guide_5">Si un audífono se oye bajo sólo con este teléfono: Bluetooth → toca el dispositivo → «Desvincular», reinicia el teléfono y empareja de nuevo. Así se borra el nivel de volumen guardado para ese dispositivo.</string>
+    <string name="guide_5_button">Abrir ajustes Bluetooth</string>
+
+    <string name="guide_6_title">6. Que HyperOS no cierre esta app</string>
+    <string name="guide_6">Xiaomi cierra apps en segundo plano para ahorrar batería y la mejora se apagaría. Quita las restricciones de batería y activa el «Inicio automático» para Volumen BT+. En Recientes, puedes también mantener pulsada la app y fijarla con el candado.</string>
+    <string name="guide_6_battery">Batería sin restricciones</string>
+    <string name="guide_6_autostart">Inicio automático</string>
+
+    <string name="disclaimer">Cuida tus oídos: no escuches a volumen muy alto durante mucho tiempo. Una amplificación excesiva también puede dañar bocinas pequeñas.</string>
+</resources>
